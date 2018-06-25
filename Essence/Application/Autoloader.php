@@ -10,7 +10,7 @@ class Autoloader
         $file_path = self::$base_dir . str_replace('\\', '/', $_class) . '.php';
 	if(file_exists($file_path))
 	{
-		require_once $file_path;
+	    require_once $file_path;
 	}
     }
     
