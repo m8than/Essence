@@ -2,9 +2,9 @@
 
 namespace Essence\Container;
 
-use Essence\Contracts\Container\Container as ContainerInterface;
+use Essence\Contracts\Container\Container as IContainer;
 
-class Container extends ContainerInterface
+class Container implements IContainer
 {
     
 }

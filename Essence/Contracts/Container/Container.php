@@ -5,7 +5,7 @@ namespace Essence\Contracts\Container;
 interface Container
 {
     /**
-     * Stores all entries by identifier on an identifier => object basis.
+     * Stores all entries by identifier.
      *
      * @var array
      */
