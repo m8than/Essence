@@ -21,7 +21,7 @@ class Container implements IContainer
      */
     public function get($id)
     {
-        if(!isset($this->entries[$id])) {
+        if(!$this->has($id)) {
             throw new NotFoundException($id . ' not found');
         }
         return $this->entries[$id]->getInstance();
