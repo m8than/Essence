@@ -16,6 +16,7 @@ class Autoloader
     
     public static function register($base_dir)
     {
+        self::$base_dir = $base_dir;
         spl_autoload_register('self::loadModule');
     }
 }

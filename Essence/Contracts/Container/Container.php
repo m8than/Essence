@@ -5,13 +5,6 @@ namespace Essence\Contracts\Container;
 interface Container
 {
     /**
-     * Stores all entries by identifier.
-     *
-     * @var array
-     */
-    protected $entries = [];
-
-    /**
      * Finds an entry by its identifier and returns it.
      *
      * @param string $id
@@ -33,7 +26,7 @@ interface Container
      * @param object $abstract
      * @return void
      */
-    public function registerSingleton($object);
+    public function registerSingleton($className);
 
     /**
      * Registers class name in the container to be used to create a new object whenever needed
