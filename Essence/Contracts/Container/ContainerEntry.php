@@ -8,16 +8,37 @@ interface ContainerEntry
      * Class constructor
      *
      * @param string $className
-     * @param int $type
-     * @param mixed $params, ...
      */
-    public function __construct($className, $type, ...$params);
+    public function __construct($className);
 
     /**
-     * Returns singleton instance or identified/random instance
+     * returns new ContainerEntry instance
+     * 
+     * @param string $className
+     * @return ContainerEntry
+     */
+    public function create($className);
+
+    /**
+     * Returns instance
      *
-     * @param string $instanceId
      * @return mixed
      */
-    public function getInstance($instanceId = '');
+    public function getInstance();
+    
+    /**
+     * Sets arguments that will be used to setup the instance
+     *
+     * @param mixed ...$params
+     * @return ContainerEntry
+     */
+    public function setArgs($params);
+
+    /**
+     * Sets type of entry: singleton, bind
+     *
+     * @param int $type
+     * @return ContainerEntry
+     */
+    public function type($type);
 }

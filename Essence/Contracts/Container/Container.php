@@ -21,18 +21,20 @@ interface Container
     public function has($id);
 
     /**
-     * Registers singleton object in the container
-     *
-     * @param object $abstract
-     * @return void
-     */
-    public function registerSingleton($className);
-
-    /**
-     * Registers class name in the container to be used to create a new object whenever needed
+     * Registers class to be used as a singleton
      *
      * @param string $className
-     * @return void
+     * @param array $params
+     * @return ContainerEntry
      */
-    public function registerClass($className);
+    public function registerSingleton($className, $params);
+    
+    /**
+     * Registers class
+     * 
+     * @param string $className
+     * @param array $params
+     * @return ContainerEntry
+     */
+    public function registerBinding($className, $params);
 }

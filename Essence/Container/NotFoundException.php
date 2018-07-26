@@ -6,8 +6,8 @@ use Essence\Container\BaseException as ContainerException;
 
 class NotFoundException extends ContainerException
 {
-    function __construct()
+    public function __construct($entryId)
     {
-        
+        parent::__construct($entryId . ' not found');
     }
 }
