@@ -27,6 +27,13 @@ class Container implements IContainer
      */
     protected $shortNameAliases = [];
 
+    /**
+     * Stores a alias to class map (takes priority)
+     *
+     * @var array
+     */
+    protected $aliases = [];
+
         /**
      * Finds an entry by its identifier and returns it.
      *
@@ -36,7 +43,6 @@ class Container implements IContainer
     public function get($id)
     {
         if(!$this->has($id)) {
-            var_dump($this);
             throw new NotFoundException($id);
         }
 
@@ -44,7 +50,7 @@ class Container implements IContainer
 
         $entry = $this->entries[$className];
         $arguments = $entry->getArgs();
-        $this->_resolveDependencies($className, $arguments);
+        $this->_resolveClassDependencies($className, $arguments);
         return $entry->setArgs($arguments)->getInstance();
     }
 
@@ -56,46 +62,64 @@ class Container implements IContainer
      */
     public function has($id)
     {
-        return isset($this->entries[$id]) || isset($this->interfaceAliases[$id]) || isset($this->shortNameAliases[$id]);
+        return isset($this->entries[$id]) || isset($this->aliases[$id]) || isset($this->interfaceAliases[$id]) || isset($this->shortNameAliases[$id]);
+    }
+
+    /**
+     * Registers alias (string|interface)
+     *
+     * @param string $className
+     * @param string $alias
+     * @return void
+     */
+    public function registerAlias($className, $alias)
+    {
+        $this->aliases[$alias] = $className;
     }
 
     /**
      * Registers class name in the container to be used to create a new object whenever needed
      *
      * @param string $className
+     * @param array $params
      * @return ContainerEntry
      */
-    public function registerSingleton($className, $params)
+    public function registerSingleton($className, $params = [])
     {
-        foreach(class_implements($className) as $interface) {
-            $this->interfaceAliases[$interface] = $className;
-        }
-        
-        $this->shortNameAliases[self::_getShortName($className)] = $className;
-
-        $this->entries[$className] = ContainerEntry::create($className)->type(ContainerEntry::TYPE_SINGLETON)->setArgs($params);
-        return $this->entries[$className];
+        return $this->_registerClass($className, $params, ContainerEntry::TYPE_SINGLETON);
     }
 
     /**
      * Registers class name in the container to be used to create a new object whenever needed
      *
      * @param string $className
+     * @param array $params
      * @return ContainerEntry
      */
-    public function registerBinding($className, $params)
+    public function registerBinding($className, $params = [])
+    {
+        return $this->_registerClass($className, $params, ContainerEntry::TYPE_GENERAL);
+    }
+
+    /**
+     * Registers class name in the container
+     * 
+     * @param string $className
+     * @param array $params
+     * @param int $type
+     * @return ContainerEntry
+     */
+    private function _registerClass($className, $params, $type)
     {
         foreach(class_implements($className) as $interface) {
             $this->interfaceAliases[$interface] = $className;
         }
-
         $this->shortNameAliases[self::_getShortName($className)] = $className;
-
-        $this->entries[$className] = ContainerEntry::create($className)->type(ContainerEntry::TYPE_GENERAL)->setArgs($params);
+        $this->entries[$className] = ContainerEntry::create($className)->type($type)->setArgs($params);
         return $this->entries[$className];
     }
 
-    private function _resolveDependencies($className, &$arguments)
+    private function _resolveClassDependencies($className, &$arguments)
     {
         $reflection = new \ReflectionClass($className);
         $constructor = $reflection->getConstructor();
@@ -103,7 +127,7 @@ class Container implements IContainer
             $arg_pos = 0;
             foreach($constructor->getParameters() as $param) {
                 $class = $param->getClass();
-                if ($class) {
+                if ($class && !(isset($arguments[$arg_pos]) && is_object($arguments[$arg_pos]))) {
                     array_splice($arguments, $arg_pos, 0, [$this->get($class->name)]);
                 }
                 $arg_pos++;
@@ -115,6 +139,8 @@ class Container implements IContainer
     {
         if (isset($this->entries[$className])) {
             return $className;
+        } else if (isset($this->aliases[$className])) {
+            return $this->aliases[$className];
         } else if (isset($this->interfaceAliases[$className])) {
             return $this->interfaceAliases[$className];
         } else if (isset($this->shortNameAliases[$className])) {
