@@ -58,6 +58,30 @@ class ContainerEntry implements IContainerEntry
         return new static($className);
     }
 
+    public function instanceExists()
+    {
+        return $this->instance == null ? false : true;
+    }
+
+    public function getType()
+    {
+        return $this->type;
+    }
+
+    /**
+     * Sets instance
+     *
+     * @param mixed $params
+     * @return ContainerEntry
+     */
+    public function setInstance($object)
+    {
+        if($this->type == self::TYPE_SINGLETON) {
+            $this->instance = $object;
+        }
+        return $this;
+    }
+
     /**
      * Returns instance
      *

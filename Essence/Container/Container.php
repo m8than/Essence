@@ -34,7 +34,7 @@ class Container implements IContainer
      */
     protected $aliases = [];
 
-        /**
+    /**
      * Finds an entry by its identifier and returns it.
      *
      * @param string $id
@@ -49,9 +49,12 @@ class Container implements IContainer
         $className = $this->_resolveFullClassName($id);
 
         $entry = $this->entries[$className];
-        $arguments = $entry->getArgs();
-        $this->_resolveClassDependencies($className, $arguments);
-        return $entry->setArgs($arguments)->getInstance();
+        if(!$entry->instanceExists()) {
+            $arguments = $entry->getArgs();
+            $this->_resolveMethodDependencies($className, '__construct', $arguments);
+            $entry->setArgs($arguments);
+        }
+        return $entry->getInstance();
     }
 
     /**
@@ -63,6 +66,31 @@ class Container implements IContainer
     public function has($id)
     {
         return isset($this->entries[$id]) || isset($this->aliases[$id]) || isset($this->interfaceAliases[$id]) || isset($this->shortNameAliases[$id]);
+    }
+
+    /**
+     * Runs specified method after
+     *
+     * @param object $class
+     * @param string $method
+     * @param array $arguments
+     * @return void
+     */
+    public function runMethod($class, $method, $arguments)
+    {
+        if(!$this->has($id)) {
+            throw new NotFoundException($id);
+        }
+
+        $className = $this->_resolveFullClassName($id);
+
+        $entry = $this->entries[$className];
+        if($entry->getType() == ContainerEntry::TYPE_SINGLETON && $entry->instanceExists()) {
+            $arguments = $entry->getArgs();
+            $this->_resolveMethodDependencies($className, $arguments);
+            $entry->setArgs($arguments);
+        }
+        return $entry->getInstance();
     }
 
     /**
@@ -119,13 +147,13 @@ class Container implements IContainer
         return $this->entries[$className];
     }
 
-    private function _resolveClassDependencies($className, &$arguments)
+     private function _resolveMethodDependencies($className, $method, &$arguments)
     {
         $reflection = new \ReflectionClass($className);
-        $constructor = $reflection->getConstructor();
-        if ($constructor) {
+        if (method_exists($className, $method)) {
+            $method = $reflection->getMethod($method);
             $arg_pos = 0;
-            foreach($constructor->getParameters() as $param) {
+            foreach($method->getParameters() as $param) {
                 $class = $param->getClass();
                 if ($class && !(isset($arguments[$arg_pos]) && is_object($arguments[$arg_pos]))) {
                     array_splice($arguments, $arg_pos, 0, [$this->get($class->name)]);
