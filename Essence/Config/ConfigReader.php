@@ -1,7 +1,11 @@
 <?php
 namespace Essence\Config;
 
-class ConfigReader
+use IteratorAggregate;
+use ArrayAccess;
+use Countable;
+
+class ConfigReader implements IteratorAggregate, ArrayAccess, Countable
 {
     private $location;
     protected $data;
@@ -16,7 +20,7 @@ class ConfigReader
     {
         //Output buffering for security
         ob_start();
-        $this->data = require_once($this->location);
+        $this->data = require($this->location);
         ob_end_clean();
     }
     

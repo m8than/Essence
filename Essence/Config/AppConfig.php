@@ -1,22 +1,18 @@
 <?php
 namespace Essence\Config;
 
-use IteratorAggregate;
-use ArrayAccess;
-use Countable;
-
-class AppConfig extends ConfigReader implements IteratorAggregate, ArrayAccess, Countable
+class AppConfig extends ConfigReader
 {
     /**
-     * Stores link to envconfig
+     * Stores link to globalconfig
      *
-     * @var EnvConfig
+     * @var GlobalConfig
      */
-    protected $env;
+    protected $globalConfig;
 
-    public function __construct($location, EnvConfig $env)
+    public function __construct($location, GlobalConfig $globalConfig)
     {
-        $this->env = $env;
+        $this->globalConfig = $globalConfig;
         parent::__construct($location);
     }
 }

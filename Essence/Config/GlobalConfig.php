@@ -1,7 +1,7 @@
 <?php
 namespace Essence\Config;
 
-class EnvConfig extends ConfigReader
+class GlobalConfig extends ConfigReader
 {
     
 }

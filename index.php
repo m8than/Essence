@@ -7,4 +7,6 @@ use Essence\Application\EssenceApplication;
 use Essence\Application\Autoloader;
 
 $app = new EssenceApplication(APP_ROOT . 'app');
+
+echo config('database.hostname');
 ?>

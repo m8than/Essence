@@ -69,7 +69,7 @@ class Container implements IContainer
     }
 
     /**
-     * Runs specified method after
+     * Runs specified method with dependency injection
      *
      * @param object $class
      * @param string $method
@@ -78,19 +78,19 @@ class Container implements IContainer
      */
     public function runMethod($class, $method, $arguments)
     {
-        if(!$this->has($id)) {
-            throw new NotFoundException($id);
-        }
+        
+    }
 
-        $className = $this->_resolveFullClassName($id);
+    /**
+     * Returns new instance of class with dependency injection
+     *
+     * @param string $class
+     * @param array $arguments
+     * @return void
+     */
+    public function newClass($class, $arguments)
+    {
 
-        $entry = $this->entries[$className];
-        if($entry->getType() == ContainerEntry::TYPE_SINGLETON && $entry->instanceExists()) {
-            $arguments = $entry->getArgs();
-            $this->_resolveMethodDependencies($className, $arguments);
-            $entry->setArgs($arguments);
-        }
-        return $entry->getInstance();
     }
 
     /**
