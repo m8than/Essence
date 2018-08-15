@@ -53,7 +53,7 @@ class ContainerEntry implements IContainerEntry
      * @param string $className
      * @return ContainerEntry
      */
-    public function create($className)
+    public static function create($className)
     {
         return new self($className);
     }

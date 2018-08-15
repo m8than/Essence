@@ -11,10 +11,19 @@ $app = new EssenceApplication(APP_ROOT . 'app');
 
 $yes = Query::create('Yes');
 
-$yes->where(['testc'=> 'testv'])->where('testc', 'test')->where('testcol', 'LIKE', '%testval')->Or()->whereIn('test1', ['test1', 'test2']);
+$yes->where('testc', 'test')
+    ->where('testcol', 'LIKE', '%testval')
+    ->Or()
+    ->where(function($where) {
+        $where->where('yes', 'no')
+        ->Or()
+        ->where('no', '!=' ,'yes')
+        ->where('no', 'yes'); 
+    })
+    ->whereIn('test1', ['test1', 'test2']);
 
-print_r($yes->test());
+$whereString = $yes->test();
+print_r($whereString);
 
-
-$where = new Essence\Database\Query\QueryParts\Where();
+//$where = new Essence\Database\Query\QueryParts\Where();
 ?>

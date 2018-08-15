@@ -17,7 +17,7 @@ interface ContainerEntry
      * @param string $className
      * @return ContainerEntry
      */
-    public function create($className);
+    public static function create($className);
 
     /**
      * Returns instance
