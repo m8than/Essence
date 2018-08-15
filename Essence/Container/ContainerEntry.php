@@ -55,7 +55,7 @@ class ContainerEntry implements IContainerEntry
      */
     public function create($className)
     {
-        return new static($className);
+        return new self($className);
     }
 
     public function instanceExists()

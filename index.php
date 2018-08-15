@@ -5,8 +5,16 @@ require_once './Essence/essence.inc.php';
 
 use Essence\Application\EssenceApplication;
 use Essence\Application\Autoloader;
+use Essence\Database\Query\Query;
 
 $app = new EssenceApplication(APP_ROOT . 'app');
 
-echo config('database.hostname');
+$yes = Query::create('Yes');
+
+$yes->where(['testc'=> 'testv'])->where('testc', 'test')->where('testcol', 'LIKE', '%testval')->Or()->whereIn('test1', ['test1', 'test2']);
+
+print_r($yes->test());
+
+
+$where = new Essence\Database\Query\QueryParts\Where();
 ?>

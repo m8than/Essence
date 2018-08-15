@@ -2,7 +2,6 @@
 namespace Essence\Database\PDO;
 
 use PDO;
-use EssencePDOStatement as PDOStatement;
 
 class EssencePDO extends PDO
 {
@@ -67,14 +66,15 @@ class EssencePDO extends PDO
     }
     /**
      * @override
+     * @return EssencePDOStatement
      */
     public function query($statement, ...$args)
     {
         $start = microtime(true);
-        $result = parent::query(...$args);
+        $result = parent::query($statement, ...$args);
         $this->addLog($statement, microtime(true) - $start);
         if ($result instanceof \PDOStatement) {
-            return new PDOStatement($this, $result);
+            return new EssencePDOStatement($this, $result);
         }
         return $result;
     }
@@ -89,7 +89,7 @@ class EssencePDO extends PDO
     {
         $result = parent::prepare($statement, $options);
         if ($result instanceof \PDOStatement) {
-            return new PDOStatement($this, $result);
+            return new EssencePDOStatement($this, $result);
         }
         return $result;
     }

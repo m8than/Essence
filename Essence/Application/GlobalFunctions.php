@@ -1,13 +1,21 @@
 <?php
-
 use Essence\Config\AppConfig;
+use Essence\Config\EnvConfig;
+use Essence\Application\EssenceApplication;
 
 if(!function_exists('config')) {
     function config($key)
     {
-        global $app;
-        $config = $app->get(AppConfig::class);
+        $config = EssenceApplication::getInstance()->get(AppConfig::class);
         return dig($key, $config);
+    }
+}
+
+if(!function_exists('env')) {
+    function env($key)
+    {
+        $env = EssenceApplication::getInstance()->get(EnvConfig::class);
+        return dig($key, $env);
     }
 }
 
@@ -22,4 +30,12 @@ if(!function_exists('dig')) {
         return $value;
     }
 }
+
+if(!function_exists('get')) {
+    function get($className, $args)
+    {
+        return EssenceApplication::getInstance()->get($className, $args);
+    }
+}
+
 ?>
