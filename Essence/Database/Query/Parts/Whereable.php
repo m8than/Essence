@@ -1,11 +1,11 @@
 <?php
 
-namespace Essence\Database\Query\QueryParts;
+namespace Essence\Database\Query\Parts;
 
 use Essence\Database\Query\PartBuilder;
 
 
-trait WhereTrait
+trait Whereable
 {
     /**
      * Modifier to tell where function what type of a where it is
@@ -113,13 +113,5 @@ trait WhereTrait
     {
         $this->_whereConnector = 'OR';
         return $this;
-    }
-}
-
-class Where {
-    use WhereTrait;
-    public function getWhereStr()
-    {
-        return PartBuilder::whereStr($this->where);
     }
 }

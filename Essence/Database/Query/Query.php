@@ -5,12 +5,12 @@ namespace Essence\Database\Query;
 use PDO;
 use Essence\Database\Database;
 use Essence\Application\EssenceApplication;
-use Essence\Database\Query\QueryParts;
-use Essence\Database\Query\QueryParts\Where;
+use Essence\Database\Query\Parts\Whereable;
+use Essence\Database\Query\Parts\Where;
 
 class Query
 {
-    use QueryParts\WhereTrait;
+    use Whereable;
 
     const FETCH_ASSOC = PDO::FETCH_ASSOC;
     const FETCH_MAPPED_LIST = PDO::FETCH_ASSOC | PDO::FETCH_UNIQUE;

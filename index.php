@@ -1,7 +1,7 @@
 <?php
 const APP_ROOT = __DIR__ . '/';
 const IN_ESSENCE = true;
-require_once './Essence/essence.inc.php';
+require_once './Essence/bootstrap.php';
 
 use Essence\Application\EssenceApplication;
 use Essence\Application\Autoloader;

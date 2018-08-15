@@ -2,7 +2,7 @@
 
 namespace Essence\Database\Query;
 
-use Essence\Database\Query\QueryParts\Where;
+use Essence\Database\Query\Parts\Where;
 
 class PartBuilder
 {
