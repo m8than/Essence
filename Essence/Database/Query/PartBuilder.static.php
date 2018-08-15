@@ -2,6 +2,8 @@
 
 namespace Essence\Database\Query;
 
+use Essence\Database\Query\QueryParts\Where;
+
 class PartBuilder
 {
     /**
@@ -19,16 +21,15 @@ class PartBuilder
         $bind = [];
 
         foreach($wheres as $where) {
-            if(!count($stringParts)) {
+            if (!count($stringParts)) {
                 //if first one connector use blank
                 $where[0] = '';
             } else {
                 $where[0] = $where[0] . ' ';
             }
 
-            if(count($where) == 4) {
-
-                if(!is_array($where[3])) {
+            if (count($where) == 4) {
+                if (!is_array($where[3])) {
                     //assume where
                     $rnd = self::_randString();
                     $bind[$rnd] = $where[3];
@@ -43,6 +44,12 @@ class PartBuilder
                     }
                     $varList = substr($varList, 0, -1);
                     $stringParts[] = "{$where[0]}{$where[1]} {$where[2]} ({$varList})";
+                }
+            } else if (count($where) == 2) {
+                if ($where[1] instanceof Where) {
+                    $info = $where[1]->getWhereStr();
+                    $stringParts[] = "{$where[0]}({$info[0]})";
+                    $bind += $info[1];
                 }
             }
         }

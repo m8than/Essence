@@ -2,6 +2,9 @@
 
 namespace Essence\Database\Query\QueryParts;
 
+use Essence\Database\Query\PartBuilder;
+
+
 trait WhereTrait
 {
     /**
@@ -21,7 +24,7 @@ trait WhereTrait
     /**
      * Sets where variables
      *
-     * @param string|array $col
+     * @param string|array|callable $col
      * @param mixed|null $value
      * @return Query
      */
@@ -29,7 +32,7 @@ trait WhereTrait
     {
         $connector = $this->_whereConnector;
         $this->_whereConnector = 'AND';
-        if(is_array($col)) {
+        if (is_array($col)) {
             //array input
             foreach($col as $key => $value) {
                 if (is_int($key)) {
@@ -51,7 +54,11 @@ trait WhereTrait
                     $this->where[] = [$connector, $key, '=', $value];
                 }
             }
-        } else if(is_null($value)) {
+        } else if (is_callable($col)) {
+            $where = new Where();
+            $col($where);
+            $this->where[] = [$connector, $where];
+        } else if (is_null($value)) {
             //assume the operator input = the value if value is null
             $this->where[] = [$connector, $col, '=', $operator];
         } else {
@@ -111,4 +118,8 @@ trait WhereTrait
 
 class Where {
     use WhereTrait;
+    public function getWhereStr()
+    {
+        return PartBuilder::whereStr($this->where);
+    }
 }

@@ -26,13 +26,6 @@ class Query
     private $_pdo;
 
     /**
-     * Modifier to tell where function what type of a where it is
-     *
-     * @var bool
-     */
-    private $_whereConnector = 'AND';
-
-    /**
      * Stores table
      *
      * @var string
