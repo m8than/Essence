@@ -2,10 +2,48 @@
 
 namespace Essence\Database\Query;
 
-use Essence\Database\Query\Parts\Where;
+use Essence\Database\Query\Parts\Where\Where;
 
 class PartBuilder
 {
+    /**
+     * Builds where string for the query builder with no binds and returns the string
+     *
+     * @param array $wheres
+     * @return string built where string
+     */
+    public static function whereStrNoBinds($wheres)
+    {
+        $stringParts = [];
+
+        foreach($wheres as $where) {
+            if (!count($stringParts)) {
+                //if first one connector use blank
+                $where[0] = '';
+            } else {
+                $where[0] = $where[0] . ' ';
+            }
+
+            if (count($where) == 4) {
+                if (!is_array($where[3])) {
+                    //assume where
+                    $rnd = self::_randString();
+                    $stringParts[] = "{$where[0]}{$where[1]} {$where[2]} $where[3]";
+                } else {
+                    $values = "'". implode("', '", $where[3]) . "'";
+                    $stringParts[] = "{$where[0]}{$where[1]} {$where[2]} ({$values})";
+                }
+            } else if (count($where) == 2) {
+                if ($where[1] instanceof Where) {
+                    $value = $where[1]->getStrNoBinds();
+                    $stringParts[] = "{$where[0]}({$value})";
+                }
+            }
+        }
+
+        return implode(' ', $stringParts);
+    }
+
     /**
      * Builds where string for the query builder and returns the string and bind variables
      *
@@ -47,7 +85,7 @@ class PartBuilder
                 }
             } else if (count($where) == 2) {
                 if ($where[1] instanceof Where) {
-                    $info = $where[1]->getWhereStr();
+                    $info = $where[1]->getStr();
                     $stringParts[] = "{$where[0]}({$info[0]})";
                     $bind += $info[1];
                 }
@@ -59,7 +97,7 @@ class PartBuilder
 
     public static function joinStr($joins)
     {
-
+        print_r($joins);
     }
 
     private static function _randString()

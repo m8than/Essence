@@ -1,6 +1,6 @@
 <?php
 
-namespace Essence\Database\Query\Parts;
+namespace Essence\Database\Query\Parts\Where;
 
 use Essence\Database\Query\PartBuilder;
 
@@ -25,10 +25,11 @@ trait Whereable
      * Sets where variables
      *
      * @param string|array|callable $col
+     * @param mixed $operator
      * @param mixed|null $value
      * @return Query
      */
-    public function where($col, $operator = '=', $value = null)
+    public function where($col, $operator='', $value = null)
     {
         $connector = $this->_whereConnector;
         $this->_whereConnector = 'AND';
@@ -109,7 +110,7 @@ trait Whereable
      *
      * @return Query
      */
-    public function Or()
+    public function or()
     {
         $this->_whereConnector = 'OR';
         return $this;

@@ -5,12 +5,13 @@ namespace Essence\Database\Query;
 use PDO;
 use Essence\Database\Database;
 use Essence\Application\EssenceApplication;
-use Essence\Database\Query\Parts\Whereable;
-use Essence\Database\Query\Parts\Where;
+use Essence\Database\Query\Parts\Where\Whereable;
+use Essence\Database\Query\Parts\Join\Joinable;
 
 class Query
 {
     use Whereable;
+    use Joinable;
 
     const FETCH_ASSOC = PDO::FETCH_ASSOC;
     const FETCH_MAPPED_LIST = PDO::FETCH_ASSOC | PDO::FETCH_UNIQUE;
@@ -32,13 +33,12 @@ class Query
      */
     private $table;
     private $where = [];
+    private $joins = [];
     private $set = [];
     private $col = '*';
     private $orderby = [];
     private $groupby = [];
     private $distinct = false;
-    
-    private $joins = [];
     private $limit = null;
     private $skip = null;
 
@@ -55,7 +55,7 @@ class Query
 
     public function test()
     {
-        return PartBuilder::whereStr($this->where);
+        return $this->joins;
     }
 
     /**
@@ -106,134 +106,6 @@ class Query
     {
         $this->col = is_array($col) ? implode(',', $col) : $col;
         return $this;
-    }
-    
-    /**
-     * Adds a join to query
-     *
-     * @param string $table
-     * @param string $on_or_column1
-     * @param string $operator_or_column2
-     * @param string $column2
-     * @return Query
-     */
-    public function join($table, $on_or_column1, $operator_or_column2 = '=', $column2 = null)
-    {
-        $this->joins[] = $this->_joinBuilder(
-                            'JOIN',
-                            $table,
-                            $on_or_column1,
-                            $operator_or_column2,
-                            $column2
-                        );
-        return $this;
-    }
-    /**
-     * Adds an inner join to query
-     *
-     * @param string $table
-     * @param string $on_or_column1
-     * @param string $operator_or_column2
-     * @param string $column2
-     * @return Query
-     */
-    public function innerJoin($table, $on_or_column1, $operator_or_column2 = '=', $column2 = null)
-    {
-        $this->joins[] = $this->_joinBuilder(
-                            'INNER JOIN',
-                            $table,
-                            $on_or_column1,
-                            $operator_or_column2,
-                            $column2
-                        );
-        return $this;
-    }
-    /**
-     * Adds a left join to query
-     *
-     * @param string $table
-     * @param string $on_or_column1
-     * @param string $operator_or_column2
-     * @param string $column2
-     * @return Query
-     */
-    public function leftJoin($table, $on_or_column1, $operator_or_column2 = '=', $column2 = null)
-    {        
-        $this->joins[] = $this->_joinBuilder(
-                            'LEFT JOIN',
-                            $table,
-                            $on_or_column1,
-                            $operator_or_column2,
-                            $column2
-                        );
-        return $this;
-    }
-
-    /**
-     * Adds a left join to query
-     *
-     * @param string $table
-     * @param string $on_or_column1
-     * @param string $operator_or_column2
-     * @param string $column2
-     * @return Query
-     */
-    public function rightJoin($table, $on_or_column1, $operator_or_column2 = '=', $column2 = null)
-    {
-        $this->joins[] = $this->_joinBuilder(
-                            'RIGHT JOIN',
-                            $table,
-                            $on_or_column1,
-                            $operator_or_column2,
-                            $column2
-                        );
-        return $this;
-    }
-
-    /**
-     * Builds join array
-     *
-     * @param string $type
-     * @param string $table
-     * @param string $on_or_column1
-     * @param string $operator_or_column2
-     * @param string $column2
-     * @return array
-     */
-    private function _joinBuilder($type, $table, $on_or_column1, $operator_or_column2 = '=', $column2 = null)
-    {
-        $on_array = [];
-        if(is_array($on_or_column1)) {
-            foreach($on_or_column1 as $key => $value) {
-                if (is_int($key)) {
-                    // if input only [column, value] assume =
-                    switch(count($value))
-                    {
-                        case 3:
-                            $on_array[] = $value;
-                            break;
-                        case 2:
-                            $on_array[] = [$value[0], '=', $value[1]];
-                            break;
-                        case 1:
-                            $on_array[] = [key($value), '=', $value[key($value)]];
-                            break;
-                    }
-                } else {
-                    $on_array[] = [$key, '=', $value];
-                }
-            }
-        } else if(is_null($column2)) {
-            //assume the operator input = the value if value is null
-            $on_array[] = [$on_or_column1, '=', $operator_or_column2];
-        } else {
-            $on_array[] = [$on_or_column1, $operator_or_column2, $column2];
-        }
-        return [
-            'type' => $type,
-            'table' => $table,
-            'on' => $on_array
-        ];
     }
     
     /**
