@@ -7,13 +7,8 @@ use Essence\Database\Query\PartBuilder;
 class Where {
     use Whereable;
     
-    public function getStr()
+    public function build()
     {
-        return PartBuilder::whereStr($this->where);
-    }
-
-    public function getStrNoBinds()
-    {
-        return PartBuilder::whereStrNoBinds($this->where);
+        return PartBuilder::where($this->where);
     }
 }

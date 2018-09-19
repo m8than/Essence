@@ -2,7 +2,7 @@
 namespace Essence\Database\PDO;
 
 use PDO;
-use EssencePDO as PDO;
+use PDOStatement;
 
 //TODO: Log variables for prepared statements
 class EssencePDOStatement
@@ -21,7 +21,7 @@ class EssencePDOStatement
      */
     private $_statement;
 
-    public function __construct(PDO $pdo, \PDOStatement $statement)
+    public function __construct(PDO $pdo, PDOStatement $statement)
     {
         $this->_pdo = $pdo;
         $this->_statement = $statement;

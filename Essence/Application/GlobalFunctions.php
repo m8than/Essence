@@ -32,7 +32,7 @@ if(!function_exists('dig')) {
 }
 
 if(!function_exists('get')) {
-    function get($className, $args)
+    function get($className, $args=[])
     {
         return EssenceApplication::getInstance()->get($className, $args);
     }

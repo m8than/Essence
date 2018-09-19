@@ -3,6 +3,7 @@
 namespace Essence\Database\Query\Parts\Join;
 
 use Essence\Database\Query\PartBuilder;
+use Essence\Database\Query\Query;
 
 trait Joinable
 {
@@ -16,7 +17,7 @@ trait Joinable
      * @param string $on_or_column1
      * @param string $operator_or_column2
      * @param string $column2
-     * @return Query
+     * @return static
      */
     public function join($table, $on_or_column1, $operator_or_column2 = '=', $column2 = null)
     {
@@ -31,7 +32,7 @@ trait Joinable
      * @param string $on_or_column1
      * @param string $operator_or_column2
      * @param string $column2
-     * @return Query
+     * @return static
      */
     public function innerJoin($table, $on_or_column1, $operator_or_column2 = '=', $column2 = null)
     {
@@ -46,9 +47,9 @@ trait Joinable
      * @param string $on_or_column1
      * @param string $operator_or_column2
      * @param string $column2
-     * @return Query
+     * @return static
      */
-    public function OuterJoin($table, $on_or_column1, $operator_or_column2 = '=', $column2 = null)
+    public function outerJoin($table, $on_or_column1, $operator_or_column2 = '=', $column2 = null)
     {
         $this->joins[] = $this->_joinBuilder(Join::OuterJoin, $table, $on_or_column1, $operator_or_column2, $column2);
         return $this;
@@ -61,7 +62,7 @@ trait Joinable
      * @param string $on_or_column1
      * @param string $operator_or_column2
      * @param string $column2
-     * @return Query
+     * @return static
      */
     public function leftJoin($table, $on_or_column1, $operator_or_column2 = '=', $column2 = null)
     {
@@ -76,7 +77,7 @@ trait Joinable
      * @param string $on_or_column1
      * @param string $operator_or_column2
      * @param string $column2
-     * @return Query
+     * @return static
      */
     public function rightJoin($table, $on_or_column1, $operator_or_column2 = '=', $column2 = null)
     {
@@ -92,7 +93,7 @@ trait Joinable
      * @param string $on_or_column1
      * @param string $operator_or_column2
      * @param string $column2
-     * @return array
+     * @return static
      */
     private function _joinBuilder($type, $table, $on_or_column1, $operator_or_column2 = '=', $column2 = null)
     {

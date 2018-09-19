@@ -2,12 +2,12 @@
 namespace Essence\Application;
 
 use PDO;
-use Essence\Container\Container;
 use Essence\Config\AppConfig;
 use Essence\Config\EnvConfig;
-use Essence\Database\PDO\EssencePDO;
-use Essence\Database\Query\Query;
 use Essence\Database\Database;
+use Essence\Container\Container;
+use Essence\Database\Query\Query;
+use Essence\Database\PDO\EssencePDO;
 
 class EssenceApplication extends Container
 {

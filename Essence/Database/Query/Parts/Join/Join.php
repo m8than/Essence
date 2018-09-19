@@ -2,11 +2,13 @@
 
 namespace Essence\Database\Query\Parts\Join;
 
+use Essence\Database\Query\Raw;
 use Essence\Database\Query\PartBuilder;
 use Essence\Database\Query\Parts\Where\Where;
 use Essence\Database\Query\Parts\Where\Whereable;
 
-class Join {
+class Join
+{
     use Whereable;
 
     public const Join = 'JOIN';
@@ -35,15 +37,28 @@ class Join {
      */
     public function on($col, $operator='', $value = null)
     {
-        // if 3 parameters and missing . on both column and value
-        if($value != null && strpos($col, '.') === false && strpos($value, '.') === false) {
-            $col = $this->table_primary . '.' . $col;
-            $value = $this->table_join . '.' . $value;
-        } elseif (strpos($col, '.') === false && strpos($operator, '.') === false) {
-            $col = $this->table_primary . '.' . $col;
-            $operator = $this->table_join . '.' . $operator;
+        if (is_string($col)) {
+            // if 3 parameters and missing . on both column and value
+            if ($value != null && strpos($col, '.') === false && strpos($value, '.') === false) {
+                $col = $this->table_primary . '.' . $col;
+                $value = $this->table_join . '.' . $value;
+            } elseif (strpos($col, '.') === false && strpos($operator, '.') === false) {
+                $col = $this->table_primary . '.' . $col;
+                $operator = $this->table_join . '.' . $operator;
+            }
         }
-        return $this->where($col, $operator, $value);
+        if ($value == null) {
+            return $this->where(
+                Raw::create($col),
+                Raw::create($operator)
+            );
+        } else {
+            return $this->where(
+                Raw::create($col),
+                $operator,
+                Raw::create($value)
+            );
+        }
     }
 
     public function tables($to, $from)
@@ -52,8 +67,9 @@ class Join {
         $this->table_join = $from;
     }
 
-    public function getStr()
+    public function build()
     {
-        return $this->type . ' ' . $this->table_join . ' ON (' . PartBuilder::whereStrNoBinds($this->where) . ')';
+        list($sql, $binds) = PartBuilder::where($this->where, true);
+        return [$this->type . ' ' . $this->table_join . ' ON (' . $sql . ')', $binds];
     }
 }

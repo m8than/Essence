@@ -7,41 +7,68 @@ use Essence\Database\Query\Parts\Where\Where;
 class PartBuilder
 {
     /**
-     * Builds where string for the query builder with no binds and returns the string
+     * Builds insert string and bind variables
      *
-     * @param array $wheres
-     * @return string built where string
+     * @param array $inserts
+     * @return array [
+     *      (string) built insert string,
+     *      (array) bind variables
+     * ]
      */
-    public static function whereStrNoBinds($wheres)
+    public static function insert($inserts)
     {
-        $stringParts = [];
+        if(!count($inserts)) {
+            return ['', []];
+        }
 
-        foreach($wheres as $where) {
-            if (!count($stringParts)) {
-                //if first one connector use blank
-                $where[0] = '';
+        $binds = [];
+        $valueParts = [];
+
+        $columns = array_keys($inserts);
+        $values = array_values($inserts);
+
+        foreach($values as $value) {
+            if ($value instanceof Raw) {
+                $valueParts[] = $value->getValue();
             } else {
-                $where[0] = $where[0] . ' ';
-            }
-
-            if (count($where) == 4) {
-                if (!is_array($where[3])) {
-                    //assume where
-                    $rnd = self::_randString();
-                    $stringParts[] = "{$where[0]}{$where[1]} {$where[2]} $where[3]";
-                } else {
-                    $values = "'". implode("', '", $where[3]) . "'";
-                    $stringParts[] = "{$where[0]}{$where[1]} {$where[2]} ({$values})";
-                }
-            } else if (count($where) == 2) {
-                if ($where[1] instanceof Where) {
-                    $value = $where[1]->getStrNoBinds();
-                    $stringParts[] = "{$where[0]}({$value})";
-                }
+                $param = ':' . self::_bindParam();
+                $valueParts[] = $param;
+                $binds[$param] = $value;
             }
         }
 
-        return implode(' ', $stringParts);
+        return ['(' . implode(',', $columns) . ') VALUES (' . implode(',', $valueParts) . ')', $binds];
+    }
+
+    /**
+     * Builds update string and bind variables
+     *
+     * @param array $updates
+     * @return array [
+     *      (string) built update string,
+     *      (array) bind variables
+     * ]
+     */
+    public static function update($updates)
+    {
+        if (!count($updates)) {
+            return ['', []];
+        }
+
+        $binds = [];
+        $stringParts = [];
+
+        foreach ($updates as $col => $value) {
+            if ($value instanceof Raw) {
+                $stringParts[] = $col . '=' . $value->getValue();
+            } else {
+                $rnd = self::_bindParam();
+                $binds[$rnd] = $value;
+                $stringParts[] = $col . '=:' . $rnd;
+            }
+        }
+
+        return ['SET ' . implode(',', $stringParts), $binds];
     }
 
     /**
@@ -51,10 +78,14 @@ class PartBuilder
      * @return array [
      *      (string) built where string,
      *      (array) bind variables
-     * ]     * 
+     * ]
      */
-    public static function whereStr($wheres)
+    public static function where($wheres, $on = false)
     {
+        if(!count($wheres)) {
+            return ['', []];
+        }
+
         $stringParts = [];
         $bind = [];
 
@@ -69,39 +100,110 @@ class PartBuilder
             if (count($where) == 4) {
                 if (!is_array($where[3])) {
                     //assume where
-                    $rnd = self::_randString();
-                    $bind[$rnd] = $where[3];
-                    $stringParts[] = "{$where[0]}{$where[1]} {$where[2]} :{$rnd}";
+                    if($where[1] instanceof Raw) {
+                        $where[1] = $where[1]->getValue();
+                    } else {
+                        $rnd = self::_bindParam();
+                        $bind[$rnd] = $where[1];
+                        $where[1] = ':' . $rnd;
+                    }
+
+                    if($where[3] instanceof Raw) {
+                        $where[3] = $where[3]->getValue();
+                    } else {
+                        $rnd = self::_bindParam();
+                        $bind[$rnd] = $where[3];
+                        $where[3] = ':' . $rnd;
+                    }
+                    
+                    $stringParts[] = "{$where[0]}{$where[1]} {$where[2]} {$where[3]}";
                 } else {
                     $varList = '';
-                    //assume whereIn
-                    foreach($where[3] as $var) {
-                        $rnd = self::_randString();
-                        $bind[$rnd] = $var;
-                        $varList .= ':' . $rnd . ',';
+                    
+                    if($where[3] instanceof Raw) {
+                        $varList = $where[3]->getValue();
+                    } else {
+                        //assume whereIn
+                        foreach($where[3] as $var) {
+                            $rnd = self::_bindParam();
+                            $bind[$rnd] = $var;
+                            $varList .= ':' . $rnd . ',';
+                        }
+                        $varList = substr($varList, 0, -1);
                     }
-                    $varList = substr($varList, 0, -1);
+
                     $stringParts[] = "{$where[0]}{$where[1]} {$where[2]} ({$varList})";
                 }
             } else if (count($where) == 2) {
                 if ($where[1] instanceof Where) {
-                    $info = $where[1]->getStr();
+                    $info = $where[1]->build();
                     $stringParts[] = "{$where[0]}({$info[0]})";
                     $bind += $info[1];
                 }
             }
         }
 
-        return [implode(' ', $stringParts), $bind];
+        if($on) {
+            return [implode(' ', $stringParts), $bind];
+        } else {
+            return ['WHERE ' . implode(' ', $stringParts), $bind];
+        }
     }
 
-    public static function joinStr($joins)
+    public static function join(array $joins)
     {
-        print_r($joins);
+        if(!count($joins)) {
+            return ['', []];
+        }
+
+        $binds = [];
+        $joinStr = [];
+        foreach ($joins as $join) {
+            $info = $join->build();
+            $joinStr[] = $info[0];
+            $binds += $info[1];
+        }
+        return [implode(' ', $joinStr), $binds];
     }
 
-    private static function _randString()
+    public static function orderBy($orderby)
     {
-        return bin2hex(openssl_random_pseudo_bytes(8 / 2));
+        if(count($orderby)) {
+            $parts = [];
+            foreach ($orderby as $col => $sort) {
+                $parts[] = "{$col} {$sort}";
+            }
+            return 'ORDER BY ' . implode(',', $parts);
+        } else {
+            return '';
+        }
+    }
+
+    public static function groupBy($groupby)
+    {
+        if(count($groupby)) {
+            return 'GROUP BY ' . implode(',', $groupby);
+        } else {
+            return '';
+        }
+    }
+
+    public static function limit($limit, $skip)
+    {
+        if ($limit == null && $skip == null) {
+            return '';
+        } else if ($skip != null && $limit == null) {
+            return "LIMIT {$skip},18446744073709551615";
+        } else if ($limit != null && $skip == null) {
+            return "LIMIT {$limit}";
+        } else {
+            return "LIMIT {$skip},{$limit}";
+        }
+    }
+
+    private static $bindCount = 0;
+    private static function _bindParam()
+    {
+        return 'b' . self::$bindCount++;
     }
 }

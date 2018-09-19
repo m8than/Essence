@@ -3,7 +3,8 @@
 namespace Essence\Database\Query\Parts\Where;
 
 use Essence\Database\Query\PartBuilder;
-
+use Essence\Database\Query\Query;
+use Essence\Database\Query\Raw;
 
 trait Whereable
 {
@@ -27,7 +28,7 @@ trait Whereable
      * @param string|array|callable $col
      * @param mixed $operator
      * @param mixed|null $value
-     * @return Query
+     * @return static
      */
     public function where($col, $operator='', $value = null)
     {
@@ -42,13 +43,13 @@ trait Whereable
                     switch(count($value))
                     {
                         case 3:
-                            $this->where[] = array_push([$connector], $value);
+                            $this->where[] = [$connector, Raw::create($value[0]), $value[1], $value[2]];
                             break;
                         case 2:
-                            $this->where[] = [$connector, $value[0], '=', $value[1]];
+                            $this->where[] = [$connector, Raw::create($value[0]), '=', $value[1]];
                             break;
                         case 1:
-                            $this->where[] = [$connector, key($value), '=', $value[key($value)]];
+                            $this->where[] = [$connector, Raw::create(key($value)), '=', $value[key($value)]];
                             break;
                     }
                 } else {
@@ -61,9 +62,9 @@ trait Whereable
             $this->where[] = [$connector, $where];
         } else if (is_null($value)) {
             //assume the operator input = the value if value is null
-            $this->where[] = [$connector, $col, '=', $operator];
+            $this->where[] = [$connector, Raw::create($col), '=', $operator];
         } else {
-            $this->where[] = [$connector, $col, $operator, $value];
+            $this->where[] = [$connector, Raw::create($col), $operator, $value];
         }
         
         return $this;
@@ -74,7 +75,7 @@ trait Whereable
      *
      * @param string $col
      * @param array $values
-     * @return Query
+     * @return static
      */
     public function whereIn($col, $values)
     {
@@ -92,7 +93,7 @@ trait Whereable
      *
      * @param string $col
      * @param array $values
-     * @return Query
+     * @return static
      */
     public function whereNotIn($col, $values)
     {
@@ -108,7 +109,7 @@ trait Whereable
     /**
      * Modifies next where call to be a whereOr
      *
-     * @return Query
+     * @return static
      */
     public function or()
     {

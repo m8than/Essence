@@ -45,17 +45,13 @@ class Query
     /**
      * Constructor
      *
+     * @param string $table
      * @param PDO $pdo
      */
     public function __construct($table, PDO $pdo)
     {
         $this->_pdo = $pdo;
         $this->table = $table;
-    }
-
-    public function test()
-    {
-        return $this->joins;
     }
 
     /**
@@ -67,25 +63,173 @@ class Query
     {
         return get(self::class, [$table]);
     }
+    
+    /**
+     * Run update query
+     * 
+     * @param array $col_values
+     * @return array
+     */
+    public function update($col_values = [])
+    {
+        $this->set($col_values);
+        
+        /**
+         * Build all the parts of the sql query
+         */
+        $parts = ["UPDATE {$this->table}"];
+
+        list($joinStr, $joinBinds) = PartBuilder::join($this->joins);
+        $parts[] = $joinStr;
+
+        list($updateStr, $updateBinds) = PartBuilder::update($this->set);
+        $parts[] = $updateStr;
+
+        list($whereStr, $whereBinds) = PartBuilder::where($this->where);
+        $parts[] = $whereStr;
+
+        /**
+         * Assemble sql query out of the parts
+         */
+        $parts = array_filter($parts);
+        $sql = implode(' ', $parts);
+        
+        /**
+         * Execute query
+         */
+        $stmt = $this->_pdo->prepare($sql);
+        return $stmt->execute($joinBinds + $updateBinds + $whereBinds);
+    }
+
+    /**
+     * Increments a value
+     *
+     * @param string $column
+     * @param int $value
+     * @return self
+     */
+    public function increment($column, $value = 1)
+    {
+        return $this->set($column, Raw::create($column . '+' . intval($value)));
+    }
+
+    /**
+     * Decrements a value
+     *
+     * @param string $column
+     * @param int $value
+     * @return self
+     */
+    public function decrement($column, $value = 1)
+    {
+        return $this->set($column, Raw::create($column . '-' . intval($value)));
+    }
+
+    /**
+     * Run insert query
+     * 
+     * @param array $col_values
+     * @return array
+     */
+    public function insert($col_values = [])
+    {
+        $this->set($col_values);
+
+        /**
+         * Build all the parts of the sql query
+         */
+        $parts = ["INSERT INTO {$this->table}"];
+
+        list($insertStr, $insertBinds) = PartBuilder::insert($this->set);
+        $parts[] = $insertStr;
+
+        /**
+         * Assemble sql query out of the parts
+         */
+        $parts = array_filter($parts);
+        $sql = implode(' ', $parts);
+
+        /**
+         * Execute query
+         */
+        $stmt = $this->_pdo->prepare($sql);
+        return $stmt->execute($insertBinds);
+    }
+
+    /**
+     * Run query and returns single row of  results-
+     *
+     * @param array $returnType
+     * @return array
+     */
+    public function selectRow($returnType = Query::FETCH_ASSOC)
+    {
+        $this->limit(1);
+        $result = $this->select($returnType);
+        return count($result) ? $result[0] : null;
+    }
+
+    /**
+     * Run query and returns results
+     *
+     * @param array $returnType
+     * @return array
+     */
+    public function select($returnType = Query::FETCH_ASSOC)
+    {
+        /**
+         * Build all the parts of the sql query
+         */ 
+        if($this->distinct) {
+            $parts = ["SELECT DISTINCT {$this->col} FROM {$this->table}"];
+        } else {
+            $parts = ["SELECT {$this->col} FROM {$this->table}"];
+        }
+
+        list($joinStr, $joinBinds) = PartBuilder::join($this->joins);
+        $parts[] = $joinStr;
+
+        list($whereStr, $whereBinds) = PartBuilder::where($this->where);
+        $parts[] = $whereStr;
+
+        $parts[] = PartBuilder::groupBy($this->groupby);
+        $parts[] = PartBuilder::orderBy($this->orderby);
+        $parts[] = PartBuilder::limit($this->limit, $this->skip);
+        
+        /**
+         * Assemble sql query out of the parts
+         */
+        $parts = array_filter($parts);
+        $sql = implode(' ', $parts);
+
+        /**
+         * Execute query
+         */
+        $stmt = $this->_pdo->prepare($sql);
+        $stmt->execute($whereBinds + $joinBinds);
+
+        return $stmt->fetchAll($returnType);
+    }
 
     /**
      * Sets table
      *
      * @param string $table
      * @param string $alias
-     * @return Query
+     * @return self
      */
     public function table($table, $alias = '')
     {
         $this->table = $table .  ($alias != '' ? ' ' . $alias : '');
         return $this;
     }
+
     /**
      * Sets variables
      * 
      * @param string|array $col
      * @param mixed|null $value
-     * @return Query
+     * @return self
      */
     public function set($col, $value = null)
     {
@@ -100,7 +244,7 @@ class Query
      * Set return columns
      *
      * @param string|array $col
-     * @return Query
+     * @return self
      */
     public function columns($col)
     {
@@ -112,19 +256,44 @@ class Query
      * Set return count limit
      *
      * @param int $limit
-     * @return Query
+     * @return self
      */
     public function limit($limit)
     {
         $this->limit = (int)$limit;
         return $this;
     }
+    
+    /**
+     * Set return count offset
+     *
+     * @param int $skip
+     * @return self
+     */
+    public function skip($skip)
+    {
+        $this->skip = (int)$skip;
+        return $this;
+    }
+
+    /**
+     * Set query to use select distinct
+     *
+     * @param bool $set
+     * @return self
+     */
+    public function distinct($set = true)
+    {
+        $this->distinct = $set;
+        return $this;
+    }
+
     /**
      * Sets orderby
      *
      * @param string|array $col
      * @param string $order
-     * @return Query
+     * @return self
      */
     public function orderBy($col, $order='ASC')
     {
@@ -132,12 +301,12 @@ class Query
         foreach($values as $key => $value) {
             $s = strtolower($value);
             if($s == 'asc' || $s == 'desc') {
-                $col = $this->_escape($key);
-                $order = $this->_escape($value);
+                $col = Database::escape($key);
+                $order = Database::escape($value);
     
                 $this->orderby[$col] = $order;
             } else {
-                $col = $this->_escape($value);
+                $col = Database::escape($value);
                 $this->orderby[$col] = 'ASC';
             }
         }
@@ -147,13 +316,13 @@ class Query
      * Sets groupby
      *
      * @param string|array $col
-     * @return Query
+     * @return self
      */
     public function groupBy($col)
     {
         $values = $this->_processVariableInput($col, $col);
         foreach($values as $value) {
-            $this->groupby[] = $this->_escape($value);
+            $this->groupby[] = Database::escape($value);
         }
         return $this;
     }
@@ -163,7 +332,7 @@ class Query
      *
      * @param array|string $key
      * @param mixed $value
-     * @return void
+     * @return array
      */
     private function _processVariableInput($key, $value)
     {
