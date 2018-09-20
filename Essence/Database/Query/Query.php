@@ -148,7 +148,7 @@ class Query
          */
         $parts = array_filter($parts);
         $sql = implode(' ', $parts);
-
+        
         /**
          * Execute query
          */

@@ -6,48 +6,52 @@ use PDO;
 class EssencePDO extends PDO
 {
     private $_log;
-
     private $_query_count;
-
     private $_query_time;
 
     public function __construct()
     {
-        $_SESSION['mysql']['query_count'] = 0;
-        $_SESSION['mysql']['query_time'] = 0;
         $this->_log = array();
         $this->_query_count = 0;
         $this->_query_time = 0;
         call_user_func_array('parent::__construct', func_get_args());
     }
 
-    public function addLog($sql, $run_time)
+    public function addLog($sql, $run_time, $binds = [])
     {
-        $run_time = $run_time*1000;
+        $run_time = $run_time * 1000;
         $bt = debug_backtrace();
-        $caller = array_shift($bt);
-        while (!empty($caller) && isset($caller['class']) && in_array($caller['class'], array('Database', 'Model', 'EssencePDO', 'EssencePDOStatement'))) {
+
+        do{
             $caller = array_shift($bt);
-        }
-        if (empty($caller)) {
-            $this->_log[] = array(
+        } while (!empty($caller) && isset($caller['class']) && in_array($caller['class'], [
+            "Essence\Database\Database",
+            "Essence\Database\ORM\Record",
+            "Essence\Database\PDO\EssencePDO",
+            "Essence\Database\Query\Query",
+            "Essence\Database\PDO\EssencePDOStatement"
+        ]));
+
+        if(empty($caller)) {
+            $this->_log[] = [
                 'query' => $sql,
-                'time' => $run_time,
-                'class' => get_called_class(),
+                'variables' => $binds,
+                'ms' => $run_time,
+                'class' => static::class,
                 'line' => 0
-            );
-        } elseif (isset($caller['class'])) {
-            $this->_log[] = array(
+            ];
+        } else {
+            $this->_log[] = [
                 'query' => $sql,
-                'time' => $run_time,
+                'variables' => $binds,
+                'ms' => $run_time,
                 'class' => $caller['class'],
                 'line' => $caller['line']
-            );
+            ];
         }
+
         $this->_query_count++;
         $this->_query_time += $run_time;
-        $_SESSION['mysql']['query_count']++;
-        $_SESSION['mysql']['query_time'] += $run_time;
     }
 
     public function getLog()
@@ -78,6 +82,7 @@ class EssencePDO extends PDO
         }
         return $result;
     }
+
     public function exec($statement)
     {
         $start = microtime(true);
