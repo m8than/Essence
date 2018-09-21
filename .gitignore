@@ -1,2 +1,2 @@
-app/Config/.app.php
-app/Config/.env.php
+app/Config/*
+app/essence.php

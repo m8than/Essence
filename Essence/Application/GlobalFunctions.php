@@ -3,11 +3,11 @@ use Essence\Config\AppConfig;
 use Essence\Config\EnvConfig;
 use Essence\Application\EssenceApplication;
 
-if(!function_exists('config')) {
-    function config($key)
+if(!function_exists('app')) {
+    function app($key)
     {
-        $config = EssenceApplication::getInstance()->get(AppConfig::class);
-        return dig($key, $config);
+        $app = EssenceApplication::getInstance()->get(AppConfig::class);
+        return dig($key, $app);
     }
 }
 

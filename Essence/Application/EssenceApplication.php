@@ -8,6 +8,8 @@ use Essence\Database\Database;
 use Essence\Container\Container;
 use Essence\Database\Query\Query;
 use Essence\Database\PDO\EssencePDO;
+use Essence\Database\ORM\Record;
+use Essence\Config\ConfigReader;
 
 class EssenceApplication extends Container
 {
@@ -18,15 +20,23 @@ class EssenceApplication extends Container
      */
     private $appDirectory;
 
+    /**
+     * Essence config
+     *
+     * @var string
+     */
+    private $config;
+
     private static $_containerInstance;
     
     public function __construct($appDirectory)
     {
-        $this->appDirectory = $appDirectory;
+        $this->appDirectory = $appDirectory . '/';
         self::$_containerInstance = $this;
         $this->registerSelf();
+        $this->loadEssenceConfig();
         $this->registerConfig();
-        $this->registerDB();
+        $this->registerContainer();
     }
 
     private function registerSelf()
@@ -34,26 +44,32 @@ class EssenceApplication extends Container
         $this->registerSingleton(self::class)->setInstance($this);
     }
 
-    private function registerConfig()
+    private function loadEssenceConfig()
     {
-        $this->registerSingleton(EnvConfig::class, [$this->appDirectory . '/Config/.env.php']);
-        $this->registerSingleton(AppConfig::class, [$this->appDirectory . '/Config/.app.php']);
+        $this->config = require($this->appDirectory . 'essence.php');
     }
 
-    private function registerDB()
+    private function registerConfig()
     {
-        $dbConfig = config('database');
-        
-        $this->registerSingleton(EssencePDO::class,
-        [
-            "mysql:host={$dbConfig['hostname']};dbname={$dbConfig['database']}",
-            $dbConfig['username'],
-            $dbConfig['password']
-        ]);
-        $this->registerAlias(EssencePDO::class, PDO::class);
+        $this->registerSingleton(EnvConfig::class, [$this->appDirectory . $this->config['env']]);
+        $this->registerSingleton(AppConfig::class, [$this->appDirectory . $this->config['app']]);
+    }
 
-        $this->registerSingleton(Database::class);
-        $this->registerBinding(Query::class);
+    private function registerContainer()
+    {
+        $container = require($this->appDirectory . $this->config['dependencies']);
+        
+        foreach($container['singletons'] as $class => $args) {
+            $this->registerSingleton($class, $args);
+        }
+
+        foreach($container['bindings'] as $class => $args) {
+            $this->registerBinding($class, $args);
+        }
+
+        foreach($container['aliases'] as $alias => $class) {
+            $this->registerAlias($class, $alias);
+        }
     }
 
     /**
