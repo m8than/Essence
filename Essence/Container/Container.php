@@ -49,7 +49,21 @@ class Container implements IContainer
 
         $className = $this->_resolveFullClassName($id);
 
-        $entry = $this->entries[$className];
+        return $this->entries[$className];
+    }
+
+    /**
+     * Gets container entry and returns an instance of the class stored
+     *
+     * @param string $id
+     * @param array $args
+     * @return mixed Class
+     */
+    public function construct($id, $args=[])
+    {
+        $className = $this->_resolveFullClassName($id);
+
+        $entry = $this->get($id);
         
         if(count($args)) { 
             $entry->setArgs($args);
@@ -151,11 +165,14 @@ class Container implements IContainer
      */
     private function _registerClass($className, $params, $type)
     {
-        foreach(class_implements($className) as $interface) {
+        foreach (class_implements($className) as $interface) {
             $this->interfaceAliases[$interface] = $className;
         }
         $this->shortNameAliases[self::_getShortName($className)] = $className;
         $this->entries[$className] = ContainerEntry::create($className)->type($type)->setArgs($params);
+        if (method_exists($className, '__staticconstruct')) {
+            $className::__staticconstruct();
+        }
         return $this->entries[$className];
     }
 
@@ -168,7 +185,7 @@ class Container implements IContainer
             foreach($method->getParameters() as $param) {
                 $class = $param->getClass();
                 if ($class && !(isset($arguments[$arg_pos]) && is_object($arguments[$arg_pos]))) {
-                    array_splice($arguments, $arg_pos, 0, [$this->get($class->name)]);
+                    array_splice($arguments, $arg_pos, 0, [$this->construct($class->name)]);
                 }
                 $arg_pos++;
             }

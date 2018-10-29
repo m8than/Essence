@@ -9,27 +9,27 @@ class EssencePDO extends PDO
     private $_query_count;
     private $_query_time;
 
-    public function __construct()
+    public function __construct(...$args)
     {
         $this->_log = array();
         $this->_query_count = 0;
         $this->_query_time = 0;
-        call_user_func_array('parent::__construct', func_get_args());
+        parent::__construct(...$args);
     }
 
     public function addLog($sql, $run_time, $binds = [])
     {
         $run_time = $run_time * 1000;
         $bt = debug_backtrace();
-
         do{
             $caller = array_shift($bt);
         } while (!empty($caller) && isset($caller['class']) && in_array($caller['class'], [
             "Essence\Database\Database",
-            "Essence\Database\ORM\Record",
             "Essence\Database\PDO\EssencePDO",
             "Essence\Database\Query\Query",
-            "Essence\Database\PDO\EssencePDOStatement"
+            "Essence\Database\PDO\EssencePDOStatement",
+            "Essence\Container\ContainerEntry",
+            "Essence\Container\Container"
         ]));
 
         if(empty($caller)) {
@@ -38,6 +38,7 @@ class EssencePDO extends PDO
                 'variables' => $binds,
                 'ms' => $run_time,
                 'class' => static::class,
+                'object' => null,
                 'line' => 0
             ];
         } else {
@@ -46,6 +47,7 @@ class EssencePDO extends PDO
                 'variables' => $binds,
                 'ms' => $run_time,
                 'class' => $caller['class'],
+                'object' => $caller['object'],
                 'line' => $caller['line']
             ];
         }

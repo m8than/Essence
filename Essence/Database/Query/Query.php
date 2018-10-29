@@ -38,7 +38,6 @@ class Query
     private $col = '*';
     private $orderby = [];
     private $groupby = [];
-    private $distinct = false;
     private $limit = null;
     private $skip = null;
 
@@ -180,11 +179,7 @@ class Query
         /**
          * Build all the parts of the sql query
          */ 
-        if($this->distinct) {
-            $parts = ["SELECT DISTINCT {$this->col} FROM {$this->table}"];
-        } else {
-            $parts = ["SELECT {$this->col} FROM {$this->table}"];
-        }
+        $parts = ["SELECT {$this->col} FROM {$this->table}"];
 
         list($joinStr, $joinBinds) = PartBuilder::join($this->joins);
         $parts[] = $joinStr;
@@ -273,18 +268,6 @@ class Query
     public function skip($skip)
     {
         $this->skip = (int)$skip;
-        return $this;
-    }
-
-    /**
-     * Set query to use select distinct
-     *
-     * @param bool $set
-     * @return self
-     */
-    public function distinct($set = true)
-    {
-        $this->distinct = $set;
         return $this;
     }
 
