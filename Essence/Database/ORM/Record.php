@@ -129,30 +129,6 @@ class Record implements ArrayAccess
         return $this->key;
     }
 
-    private function _loadDataWith($table, $key, $id, $relations)
-    {
-        $columns = [$table.'.*'];
-        $joins = [];
-        foreach ($this->relationships as $class => $column) {
-            $shortName = substr(strrchr($class, '\\'), 1);
-            if (in_array($shortName, $relations) || in_array($class, $relations)) {
-                //Can't get table and key statically so create an empty object
-                $obj = $class::create();
-                $join_table = $obj->getTable();
-                $join_key = $obj->getKey();
-
-                $columns[] = "'{$shortName}' as essence_newColumn";
-                $columns[] = $join_table.'.*';
-                $joins[] = "INNER JOIN {$join_table} ON {$table}.{$column} = {$join_table}.{$join_key}";
-            }
-        }
-        $stmt = $this->_pdo->prepare("SELECT " . implode(',', $columns) . " FROM {$table} ".implode(' ', $joins)." WHERE {$table}.{$key} = :id");
-        $stmt->execute(['id' => $id]);
-        $result = $stmt->fetch(PDO::FETCH_NAMED);
-        print_r($result);
-        die();
-    }
-
     private function _loadData($table, $key, $id)
     {
         $stmt = $this->_pdo->prepare("SELECT * FROM {$table} WHERE {$key} = :id LIMIT 1");
@@ -194,15 +170,6 @@ class Record implements ArrayAccess
     public static function fetch($id, $data = [])
     {
         return get(static::class, [$id, $data, []]);
-    }
-    /**
-     * Factory method, loads record with relationships
-     * 
-     * @return static
-     */
-    public static function fetchWith($id, $relations)
-    {
-        return get(static::class, [$id, [], $relations]);
     }
     
     public function offsetSet($offset, $value)
