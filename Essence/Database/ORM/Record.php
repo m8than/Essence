@@ -28,7 +28,7 @@ class Record implements ArrayAccess
      */
     private $_pdo;
     
-    public function __construct($id, $data = [], $relations = [], PDO $dbc)
+    public function __construct($id, $data = [], PDO $dbc)
     {
         $this->_pdo = $dbc;
         
@@ -41,8 +41,6 @@ class Record implements ArrayAccess
             $this->data[$this->key] = $id;
             if (count($data)) {
                 $this->data = array_merge($this->data, $data);
-            } elseif (count($relations)) {
-                $this->data = $this->_loadDataWith($this->table, $this->key, $id, $relations);
             } else {
                 $this->data = $this->_loadData($this->table, $this->key, $id);
             }

@@ -32,7 +32,9 @@ class Query
      * @var string
      */
     private $table;
+    private $distinct = false;
     private $where = [];
+    private $having = [];
     private $joins = [];
     private $set = [];
     private $col = '*';
@@ -98,6 +100,18 @@ class Query
          */
         $stmt = $this->_pdo->prepare($sql);
         return $stmt->execute($joinBinds + $updateBinds + $whereBinds);
+    }
+    
+    /**
+     * Set query to use select distinct
+     *
+     * @param bool $set
+     * @return self
+     */
+    public function distinct($set = true)
+    {
+        $this->distinct = $set;
+        return $this;
     }
 
     /**
@@ -178,8 +192,12 @@ class Query
     {
         /**
          * Build all the parts of the sql query
-         */ 
-        $parts = ["SELECT {$this->col} FROM {$this->table}"];
+         */  
+        if($this->distinct) {
+            $parts = ["SELECT DISTINCT {$this->col} FROM {$this->table}"];
+        } else {
+            $parts = ["SELECT {$this->col} FROM {$this->table}"];
+        }
 
         list($joinStr, $joinBinds) = PartBuilder::join($this->joins);
         $parts[] = $joinStr;
@@ -190,6 +208,7 @@ class Query
         $parts[] = PartBuilder::groupBy($this->groupby);
         $parts[] = PartBuilder::orderBy($this->orderby);
         $parts[] = PartBuilder::limit($this->limit, $this->skip);
+        $parts[] = PartBuilder::having($this->having);
         
         /**
          * Assemble sql query out of the parts

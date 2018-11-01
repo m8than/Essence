@@ -3,6 +3,7 @@
 namespace Essence\Database\Query;
 
 use Essence\Database\Query\Parts\Where\Where;
+use Essence\Database\Query\Parts\Having\Having;
 
 class PartBuilder
 {
@@ -69,6 +70,85 @@ class PartBuilder
         }
 
         return ['SET ' . implode(',', $stringParts), $binds];
+    }
+    /**
+     * 
+     * Builds where having for the query builder and returns the string and bind variables
+     *
+     * @param array $wheres
+     * @return array [
+     *      (string) built where string,
+     *      (array) bind variables
+     * ]
+     */
+    public static function having($wheres, $on = false)
+    {
+        if(!count($wheres)) {
+            return ['', []];
+        }
+
+        $stringParts = [];
+        $bind = [];
+
+        foreach($wheres as $where) {
+            if (!count($stringParts)) {
+                //if first one connector use blank
+                $where[0] = '';
+            } else {
+                $where[0] = $where[0] . ' ';
+            }
+
+            if (count($where) == 4) {
+                if (!is_array($where[3])) {
+                    //assume where
+                    if($where[1] instanceof Raw) {
+                        $where[1] = $where[1]->getValue();
+                    } else {
+                        $rnd = self::_bindParam();
+                        $bind[$rnd] = $where[1];
+                        $where[1] = ':' . $rnd;
+                    }
+
+                    if($where[3] instanceof Raw) {
+                        $where[3] = $where[3]->getValue();
+                    } else {
+                        $rnd = self::_bindParam();
+                        $bind[$rnd] = $where[3];
+                        $where[3] = ':' . $rnd;
+                    }
+                    
+                    $stringParts[] = "{$where[0]}{$where[1]} {$where[2]} {$where[3]}";
+                } else {
+                    $varList = '';
+                    
+                    if($where[3] instanceof Raw) {
+                        $varList = $where[3]->getValue();
+                    } else {
+                        //assume whereIn
+                        foreach($where[3] as $var) {
+                            $rnd = self::_bindParam();
+                            $bind[$rnd] = $var;
+                            $varList .= ':' . $rnd . ',';
+                        }
+                        $varList = substr($varList, 0, -1);
+                    }
+
+                    $stringParts[] = "{$where[0]}{$where[1]} {$where[2]} ({$varList})";
+                }
+            } else if (count($where) == 2) {
+                if ($where[1] instanceof Having) {
+                    $info = $where[1]->build();
+                    $stringParts[] = "{$where[0]}({$info[0]})";
+                    $bind += $info[1];
+                }
+            }
+        }
+
+        if($on) {
+            return [implode(' ', $stringParts), $bind];
+        } else {
+            return ['HAVING ' . implode(' ', $stringParts), $bind];
+        }
     }
 
     /**
