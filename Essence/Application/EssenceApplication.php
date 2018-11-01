@@ -10,6 +10,7 @@ use Essence\Database\Query\Query;
 use Essence\Database\PDO\EssencePDO;
 use Essence\Database\ORM\Record;
 use Essence\Config\ConfigReader;
+use Essence\Router\Router;
 
 class EssenceApplication extends Container
 {
@@ -37,6 +38,16 @@ class EssenceApplication extends Container
         $this->loadEssenceConfig();
         $this->registerConfig();
         $this->registerContainer();
+        $this->registerRoutes();
+    }
+
+    private function registerRoutes()
+    {
+        Router::setNamespace($this->config['controller_namespace']);
+        
+        if (isset($this->config['routes'])) {
+            include_once($this->appDirectory . $this->config['routes']);
+        }
     }
 
     private function registerSelf()
