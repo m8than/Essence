@@ -2,9 +2,6 @@
 
 namespace Essence\Router;
 
-use Essence\Application\EssenceApplication;
-
-
 class Router
 {
     private static $routes = [];
@@ -13,10 +10,10 @@ class Router
     ];
     private static $namespace = '';
 
-    private static $route_match = '';
+    private static $route_match = null;
     private static $route_variables = '';
 
-    public static function add($type, $uri, $controller, $method, $middleware = "")
+    public static function add($type, $uri, $controller, $method, $middleware = "", $middleware_variables = [])
     {
         $types = explode('|', $type);
 
@@ -29,7 +26,8 @@ class Router
             'uri' => $uri,
             'controller' => $controller,
             'method' => $method,
-            'middleware' => $middleware
+            'middleware' => $middleware,
+            'middleware_variables' => $middleware_variables
         ];
     }
 
@@ -38,7 +36,9 @@ class Router
         $key = md5(microtime() . rand(100000,99999));
         $variables_to_nothing = array_combine(self::$variables, array_fill(0, count(self::$variables), $key));
         foreach(self::$routes as $route) {
-            //TODO: check request method
+            if (!in_array($_SERVER['REQUEST_METHOD'], $route['types'])) {
+                continue;
+            }
 
             //get parts of route around variables
             $route_parts = explode($key, strtr($route['uri'], $variables_to_nothing));
@@ -70,7 +70,6 @@ class Router
                     if ($found) {
                         self::$route_match = $route;
                         self::$route_variables = $variables;
-                        print_r($route);
                         break;
                     }
                 }
@@ -90,7 +89,28 @@ class Router
 
     public static function dispatch()
     {
+        if (self::$route_match != null) {
+            $app = get(\Essence\Application\EssenceApplication::class);
 
+            if (!empty(self::$route_match['middleware'])) {
+                $middleware = $app->newClass(self::$route_match['middleware'], []);
+                if (!$app->runMethod($middleware, "handle", self::$route_match['middleware_variables'])) {
+                    return $app->runMethod($middleware, "exit", self::$route_match['middleware_variables']);
+                }
+            }
+
+            $controller = $app->newClass(self::$route_match['controller'], []);
+            return $app->runMethod($controller, self::$route_match['method'], self::$route_variables);
+        }
+    }
+
+    public static function redirect($url_or_controller, $method = null, $variables = null)
+    {
+        if ($method != null) {
+
+        } else {
+            header('LOCATION: '. $url_or_controller);
+        }
     }
 
     public static function setNamespace($namespace)

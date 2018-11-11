@@ -3,7 +3,7 @@ namespace Essence\Application;
 
 use PDO;
 use Essence\Config\AppConfig;
-use Essence\Config\EnvConfig;
+use Essence\Config\EssenceConfig;
 use Essence\Database\Database;
 use Essence\Container\Container;
 use Essence\Database\Query\Query;
@@ -21,13 +21,6 @@ class EssenceApplication extends Container
      */
     private $appDirectory;
 
-    /**
-     * Essence config
-     *
-     * @var string
-     */
-    private $config;
-
     private static $_containerInstance;
     
     public function __construct($appDirectory)
@@ -39,14 +32,15 @@ class EssenceApplication extends Container
         $this->registerConfig();
         $this->registerContainer();
         $this->registerRoutes();
+        get(EssenceConfig::class)->app_dir = $this->appDirectory;
     }
 
     private function registerRoutes()
     {
-        Router::setNamespace($this->config['controller_namespace']);
+        Router::setNamespace(essence('controller_namespace'));
         
-        if (isset($this->config['routes'])) {
-            include_once($this->appDirectory . $this->config['routes']);
+        if (essence('routes') != null) {
+            include_once($this->appDirectory . essence('routes'));
         }
     }
 
@@ -57,18 +51,17 @@ class EssenceApplication extends Container
 
     private function loadEssenceConfig()
     {
-        $this->config = require($this->appDirectory . 'essence.php');
+        $this->registerSingleton(EssenceConfig::class, [$this->appDirectory . 'essence.php']);
     }
 
     private function registerConfig()
     {
-        $this->registerSingleton(EnvConfig::class, [$this->appDirectory . $this->config['env']]);
-        $this->registerSingleton(AppConfig::class, [$this->appDirectory . $this->config['app']]);
+        $this->registerSingleton(AppConfig::class, [$this->appDirectory . essence('app')]);
     }
 
     private function registerContainer()
     {
-        $container = require($this->appDirectory . $this->config['dependencies']);
+        $container = require($this->appDirectory . essence('dependencies'));
         
         foreach($container['singletons'] as $class => $args) {
             $this->registerSingleton($class, $args);
