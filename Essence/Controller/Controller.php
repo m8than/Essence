@@ -10,8 +10,9 @@ class Controller
 {
     protected function view($name, $data = [])
     {
-        if (session('essence.controlvariables') != null) {
+        if (session('essence.controlvariables') !== null) {
             $data = array_merge($data, session('essence.controlvariables'));
+            session('essence.controlvariables', null);
         }
         $template = new Template($name, $data);
         return $template->output();

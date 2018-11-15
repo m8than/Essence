@@ -8,7 +8,8 @@ class Router
     private static $variables = [
         '{str}'
     ];
-    private static $namespace = '';
+    private static $controller_namespace = '';
+    private static $middleware_namespace = '';
 
     private static $route_match = null;
     private static $route_variables = '';
@@ -18,7 +19,11 @@ class Router
         $types = explode('|', $type);
 
         if (strpos($controller, '\\') === false) {
-            $controller = self::$namespace . '\\' . $controller;
+            $controller = self::$controller_namespace . '\\' . $controller;
+        }
+        
+        if (strpos($middleware, '\\') === false && $middleware != "") {
+            $middleware = self::$middleware_namespace . '\\' . $middleware;
         }
 
         self::$routes[] = [
@@ -106,15 +111,25 @@ class Router
 
     public static function redirect($url_or_controller, $method = null, $variables = null)
     {
-        if ($method != null) {
-            
+        if ($method !== null) {
+            foreach(self::$routes as $route) {
+                if (str_replace(self::$controller_namespace . '\\', '', $route['controller']) == $url_or_controller && $route['method'] == $method) {
+                    $url = str_replace(self::$variables, $variables, $route['uri']);
+                    header('LOCATION: '. $url);
+                }
+            }
         } else {
             header('LOCATION: '. $url_or_controller);
         }
     }
 
-    public static function setNamespace($namespace)
+    public static function setControllerNamespace($namespace)
     {
-        self::$namespace = $namespace;
+        self::$controller_namespace = $namespace;
+    }
+
+    public static function setMiddlewareNamespace($namespace)
+    {
+        self::$middleware_namespace = $namespace;
     }
 }

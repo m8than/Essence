@@ -5,7 +5,7 @@ use Essence\Application\EssenceApplication;
 
 
 if (!function_exists('app')) {
-    function app($key, $value = null)
+    function app($key, $value = '')
     {
         $app = EssenceApplication::getInstance()->construct(AppConfig::class);
         return dig($key, $app, $value);
@@ -13,7 +13,7 @@ if (!function_exists('app')) {
 }
 
 if (!function_exists('env')) {
-    function essence($key, $value = null)
+    function essence($key, $value = '')
     {
         $env = EssenceApplication::getInstance()->construct(EssenceConfig::class);
         return dig($key, $env, $value);
@@ -21,9 +21,9 @@ if (!function_exists('env')) {
 }
 
 if (!function_exists('dig')) {
-    function dig($key, &$array, $value = null)
+    function dig($key, &$array, $value = '')
     {
-        if ($value != null) {
+        if ($value !== '') {
             $temp = &$array;
             $parts = explode('.', $key);
             foreach($parts as $key) {
@@ -34,6 +34,9 @@ if (!function_exists('dig')) {
             $temp = $array;
             $parts = explode('.', $key);
             foreach($parts as $key) {
+                if (!isset($temp[$key])) { 
+                    return null;
+                }
                 $temp = $temp[$key];
             }
         }
@@ -50,7 +53,7 @@ if (!function_exists('get')) {
 }
 
 if (!function_exists('session')) {
-    function session($key, $value = null)
+    function session($key, $value = '')
     {
         return dig($key, $_SESSION, $value);
     }

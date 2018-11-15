@@ -37,7 +37,8 @@ class EssenceApplication extends Container
 
     private function registerRoutes()
     {
-        Router::setNamespace(essence('controller_namespace'));
+        Router::setControllerNamespace(essence('controller_namespace'));
+        Router::setMiddlewareNamespace(essence('middleware_namespace'));
         
         if (essence('routes') != null) {
             include_once($this->appDirectory . essence('routes'));
