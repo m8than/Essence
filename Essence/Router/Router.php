@@ -107,7 +107,7 @@ class Router
     public static function redirect($url_or_controller, $method = null, $variables = null)
     {
         if ($method != null) {
-
+            
         } else {
             header('LOCATION: '. $url_or_controller);
         }

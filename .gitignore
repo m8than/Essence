@@ -1,2 +1,3 @@
 app/Config/*
 app/essence.php
+app/Temp/*
