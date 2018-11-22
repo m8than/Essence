@@ -2,6 +2,9 @@
 
 namespace Essence\Router;
 
+use Essence\Template\Template;
+
+
 class Router
 {
     private static $routes = [];
@@ -38,6 +41,7 @@ class Router
 
     public static function prepare($uri)
     {
+        Template::addGlobal(['url' => $uri]);
         $key = md5(microtime() . rand(100000,99999));
         $variables_to_nothing = array_combine(self::$variables, array_fill(0, count(self::$variables), $key));
         foreach(self::$routes as $route) {
@@ -115,7 +119,7 @@ class Router
             foreach(self::$routes as $route) {
                 if (str_replace(self::$controller_namespace . '\\', '', $route['controller']) == $url_or_controller && $route['method'] == $method) {
                     $url = str_replace(self::$variables, $variables, $route['uri']);
-                    header('LOCATION: '. $url);
+                    header('LOCATION: '. essence('website_url') . '/' . $url);
                 }
             }
         } else {

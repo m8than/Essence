@@ -3,6 +3,8 @@ namespace Essence\Template;
 
 class Template
 {
+    private static $global_data = [];
+
     private $view_file;
     private $view_data;
 
@@ -16,6 +18,11 @@ class Template
         $this->view_file = $filename;
         $this->view_data = $view_data;
         $this->view_data['this'] = $this;
+    }
+
+    public static function addGlobal($data)
+    {
+        self::$global_data = array_merge(self::$global_data, $data);
     }
 
     private function dynamicReplacements($data)
@@ -61,7 +68,7 @@ class Template
         $data = preg_replace("/{#\s*(while\s*\(.*\))\s*#}/i", '{#$1:#}', $data);
         $data = preg_replace("/{#\s*\/while\s*#}/i", '{#endwhile;#}', $data);
                 
-        $data = preg_replace('/{#\s*(\$[a-zA-Z\[\]\'\_\$\-\>]*)\s*#}/i', '{#=$1#}', $data);
+        $data = preg_replace('/{#\s*(\$[a-zA-Z\[\]\'\_\$\-\>]*)\s*#}/i', '{#=$1 ?? \'\'#}', $data);
         
         $data = str_replace("{#=", "<?=", $data);
         $data = str_replace("{#", "<?php ", $data);
@@ -91,7 +98,7 @@ class Template
             $finalTemplateData = file_get_contents($this->view_dir . $view_file);
             $finalTemplateData = $this->dynamicReplacements($finalTemplateData);
             $finalTemplateData = $this->replacements($finalTemplateData);
-            $finalTemplateData = '<?php if (!defined(\'ESSENCE_SECURE\')) { die(); } ?>'.$finalTemplateData;
+            $finalTemplateData = '<?php if (!defined(\'ESSENCE_SECURE\')) { die(); } use Essence\Template\TemplateFunctions; ?>'.$finalTemplateData;
             if (!is_dir(dirname($cache_path)))
             {
                 mkdir(dirname($cache_path), 777, true);
@@ -104,6 +111,7 @@ class Template
 
     public function output()
     {
+        $this->view_data = array_merge($this->view_data, self::$global_data);
         ob_start();
         require $this->getCache($this->view_file);
         $result = ob_get_contents();
@@ -116,3 +124,5 @@ class Template
         return md5($path . essence('app_key'));
     }
 }
+
+require_once "TemplateFunctions.php";

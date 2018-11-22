@@ -47,7 +47,7 @@ class EssencePDO extends PDO
                 'variables' => $binds,
                 'ms' => $run_time,
                 'class' => $caller['class'],
-                'object' => $caller['object'],
+                'object' => isset($caller['object']) ? get_class($caller['object']) : null,
                 'line' => $caller['line']
             ];
         }

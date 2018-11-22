@@ -5,6 +5,7 @@ namespace Essence\Database\ORM;
 use PDO;
 use ArrayAccess;
 use Essence\Database\PDO\EssencePDO;
+use Essence\Database\Query\Query;
 
 class Record implements ArrayAccess
 {
@@ -39,7 +40,7 @@ class Record implements ArrayAccess
             $this->table = $class_name . 's';
         }
 
-        if (!is_null($id)) {
+        if ($id != 0 || count($data) > 0) {
             $this->new_record = false;
             $this->data[$this->key] = $id;
             if (count($data)) {
@@ -89,7 +90,9 @@ class Record implements ArrayAccess
 
             $filterMethod = $column . 'Filter';
             if (method_exists($this, $filterMethod)) {
-                if (!$this->$filterMethod($value)) {
+                if ($this->$filterMethod($value)) {
+                    $this->data[$column] = $value;
+                } else {
                     unset($data[$column]);
                     continue;
                 }
@@ -145,9 +148,10 @@ class Record implements ArrayAccess
         return $result;
     }
 
-    protected function belongsTo($model, $foreign_key)
+    protected function belongsTo($model, $foreign_key = null)
     {
         $table = $model::getTable();
+        $foreign_key = $foreign_key ?? $model::getKey();
         $id = $this->data[$this->_getKey()];
 
         $stmt = $this->_pdo->prepare("SELECT * FROM {$table} WHERE {$foreign_key} = :id LIMIT 1");
@@ -229,7 +233,7 @@ class Record implements ArrayAccess
 
             $foreign_uniq_id = $foreign_id ?? $foreign_model_class->getId();
             $local_id = $this->getId();
-
+            
             $stmt = $this->_pdo->prepare("DELETE FROM {$link_table} WHERE {$foreign_link_key}=:foreign_id AND {$local_link_key}=:local_id");
             $stmt->execute(['foreign_id' => $foreign_uniq_id, 'local_id' => $local_id]);
         }
@@ -264,7 +268,8 @@ class Record implements ArrayAccess
     {
         $stmt = $this->_pdo->prepare("SELECT * FROM {$table} WHERE {$key} = :id LIMIT 1");
         $stmt->execute(['id' => $id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ? $result : [];
     }
 
     private function _updateData($table, $key, $data)
@@ -296,11 +301,31 @@ class Record implements ArrayAccess
     /**
      * Factory method
      *
+     * @return Query
+     */
+    public static function newQuery()
+    {
+        return get(Query::class, [self::getTable()]);
+    }
+
+    /**
+     * Factory method
+     *
+     * @return Query
+     */
+    public function _newQuery()
+    {
+        return get(Query::class, [$this->getTable()]);
+    }
+
+    /**
+     * Factory method
+     *
      * @return static
      */
     public static function create()
     {
-        return get(static::class, [null, [], []]);
+        return get(static::class, [0, [], []]);
     }
 
     /**
