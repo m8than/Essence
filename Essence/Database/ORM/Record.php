@@ -5,6 +5,7 @@ namespace Essence\Database\ORM;
 use PDO;
 use ArrayAccess;
 use Essence\Database\PDO\EssencePDO;
+use Essence\Database\Query\Query;
 
 class Record implements ArrayAccess
 {
@@ -39,7 +40,7 @@ class Record implements ArrayAccess
             $this->table = $class_name . 's';
         }
 
-        if (!is_null($id)) {
+        if ($id != 0 || count($data) > 0) {
             $this->new_record = false;
             $this->data[$this->key] = $id;
             if (count($data)) {
@@ -52,6 +53,10 @@ class Record implements ArrayAccess
         }
     }
 
+    /**
+     * @param array $data
+     * @return static
+     */
     public function save($data = [])
     {
         $data = array_merge($this->data, $data);
@@ -89,7 +94,9 @@ class Record implements ArrayAccess
 
             $filterMethod = $column . 'Filter';
             if (method_exists($this, $filterMethod)) {
-                if (!$this->$filterMethod($value)) {
+                if ($this->$filterMethod($value)) {
+                    $this->data[$column] = $value;
+                } else {
                     unset($data[$column]);
                     continue;
                 }
@@ -145,9 +152,10 @@ class Record implements ArrayAccess
         return $result;
     }
 
-    protected function belongsTo($model, $foreign_key)
+    protected function belongsTo($model, $foreign_key = null)
     {
         $table = $model::getTable();
+        $foreign_key = $foreign_key ?? $model::getKey();
         $id = $this->data[$this->_getKey()];
 
         $stmt = $this->_pdo->prepare("SELECT * FROM {$table} WHERE {$foreign_key} = :id LIMIT 1");
@@ -181,7 +189,7 @@ class Record implements ArrayAccess
     public static function getLinkKey($obj = null)
     {
         if ($obj != null) {
-            return strtolower($obj::getShortName()) . '_' . $obj->_getKey();
+            return strtolower($obj::getShortName()) . '_' . $obj::getKey();
         } else {
             return strtolower(static::getShortName()) . '_' . static::getKey();
         }
@@ -215,6 +223,7 @@ class Record implements ArrayAccess
             $stmt = $this->_pdo->prepare("INSERT INTO {$link_table} ({$foreign_link_key}, {$local_link_key}) VALUES (:foreign_id, :local_id)");
             $stmt->execute(['foreign_id' => $foreign_uniq_id, 'local_id' => $local_id]);
         }
+        return $this;
     }
     
     public function detach($foreign_model_class, $foreign_id = null)
@@ -229,10 +238,22 @@ class Record implements ArrayAccess
 
             $foreign_uniq_id = $foreign_id ?? $foreign_model_class->getId();
             $local_id = $this->getId();
-
+            
             $stmt = $this->_pdo->prepare("DELETE FROM {$link_table} WHERE {$foreign_link_key}=:foreign_id AND {$local_link_key}=:local_id");
             $stmt->execute(['foreign_id' => $foreign_uniq_id, 'local_id' => $local_id]);
         }
+        return $this;
+    }
+
+    public function detachAll($foreign_model_class)
+    {
+        $link_table = $this->getLinkTable($foreign_model_class);
+        $local_link_key = static::getLinkKey($this);
+        $local_id = $this->getId();
+        $stmt = $this->_pdo->prepare("DELETE FROM {$link_table} WHERE {$local_link_key}=:local_id");
+        $stmt->execute(['local_id' => $local_id]);
+
+        return $this;
     }
 
     public static function getShortName()
@@ -264,7 +285,8 @@ class Record implements ArrayAccess
     {
         $stmt = $this->_pdo->prepare("SELECT * FROM {$table} WHERE {$key} = :id LIMIT 1");
         $stmt->execute(['id' => $id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ? $result : [];
     }
 
     private function _updateData($table, $key, $data)
@@ -282,7 +304,7 @@ class Record implements ArrayAccess
         $stmt = $this->_pdo->prepare("INSERT INTO {$table} (" . implode(',', $columns) . ") VALUES (" . implode(',', $bind_columns) . ")");
         $stmt->execute($data);
 
-        if (!isset($this->data[$this->_getKey()])) {
+        if (!isset($this->data[$this->_getKey()]) || $this->data[$this->_getKey()] == 0) {
             $this->data[$this->getKey()] = $this->_pdo->lastInsertId();
         }
     }
@@ -296,11 +318,31 @@ class Record implements ArrayAccess
     /**
      * Factory method
      *
+     * @return Query
+     */
+    public static function newQuery()
+    {
+        return get(Query::class, [self::getTable()]);
+    }
+
+    /**
+     * Factory method
+     *
+     * @return Query
+     */
+    public function _newQuery()
+    {
+        return get(Query::class, [$this->getTable()]);
+    }
+
+    /**
+     * Factory method
+     *
      * @return static
      */
     public static function create()
     {
-        return get(static::class, [null, [], []]);
+        return get(static::class, [0, [], []]);
     }
 
     /**
@@ -311,6 +353,16 @@ class Record implements ArrayAccess
     public static function fetch($id, $data = [])
     {
         return get(static::class, [$id, $data, []]);
+    }
+    
+    public static function arrayToModels($data)
+    {
+        $result = [];
+        foreach($data as $row)
+        {
+            $result[] = static::fetch(0, $row);
+        }
+        return $result;
     }
     
     public function offsetSet($offset, $value)

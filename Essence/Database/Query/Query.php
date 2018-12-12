@@ -172,7 +172,7 @@ class Query
     /**
      * Run query and returns single row of  results-
      *
-     * @param array $returnType
+     * @param integer $returnType
      * @return array
      */
     public function selectRow($returnType = Query::FETCH_ASSOC)
@@ -185,7 +185,7 @@ class Query
     /**
      * Run query and returns results
      *
-     * @param array $returnType
+     * @param integer $returnType
      * @return array
      */
     public function select($returnType = Query::FETCH_ASSOC)
@@ -208,7 +208,9 @@ class Query
         $parts[] = PartBuilder::groupBy($this->groupby);
         $parts[] = PartBuilder::orderBy($this->orderby);
         $parts[] = PartBuilder::limit($this->limit, $this->skip);
-        $parts[] = PartBuilder::having($this->having);
+        
+        list($havingStr, $havingBinds) = PartBuilder::having($this->having);
+        $parts[] = $havingStr;
         
         /**
          * Assemble sql query out of the parts
@@ -220,7 +222,7 @@ class Query
          * Execute query
          */
         $stmt = $this->_pdo->prepare($sql);
-        $stmt->execute($whereBinds + $joinBinds);
+        $stmt->execute($whereBinds + $joinBinds + $havingBinds);
 
         return $stmt->fetchAll($returnType);
     }
