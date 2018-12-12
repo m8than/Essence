@@ -122,7 +122,11 @@ class Router
             foreach(self::$routes as $route) {
                 if (str_replace(self::$controller_namespace . '\\', '', $route['controller']) == $url_or_controller && $route['method'] == $method) {
                     $url = str_replace(self::$variables, $variables, $route['uri']);
+<<<<<<< HEAD
                     header('LOCATION: '. app('website.url') . '/' . $url);
+=======
+                    header('LOCATION: '. essence('website_url') . '/' . $url);
+>>>>>>> 50677528f3773513162fa0c873b7a0fdbcd4044c
                 }
             }
         } else {
