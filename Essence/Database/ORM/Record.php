@@ -5,13 +5,14 @@ namespace Essence\Database\ORM;
 use PDO;
 use ArrayAccess;
 use Essence\Database\PDO\EssencePDO;
-use Essence\Database\Query\Query;
+use Essence\Database\ORM\RelationQuery as Query;
 
 class Record implements ArrayAccess
 {
     protected $key = 'id';
     protected $table = null;
     protected $relationships = [];
+
 
     /**
      * Stores a list of writeable columns
@@ -110,7 +111,24 @@ class Record implements ArrayAccess
             return $this->data[$column];
         } else if (method_exists($this, $column . 'Attr')) {
             $method = $column . 'Attr';
-            $this->data[$column] = $this->$method();
+
+            $result = $this->$method();
+
+            if ($result instanceof Query) {
+                $model = $result->getModel();
+                $rows = $result->select(EssencePDO::FETCH_ASSOC);
+                
+                if (count($rows) > 1) {
+                    foreach($rows as $row) {
+                        $this->data[$column][] = $model::fetch(0, $row);
+                    }
+                } elseif (count($rows) == 1) {
+                    $this->data[$column] = $model::fetch(0, $rows[0]);
+                }
+            } else {
+                $this->data[$column] = $result;
+            }
+
             if (isset($this->data[$column]) && $this->data[$column] != null) {
                 return $this->data[$column];
             }
@@ -123,16 +141,24 @@ class Record implements ArrayAccess
         $this->data[$column] = $value;
     }
 
+    /**
+     * Undocumented function
+     *
+     * @param Record $model
+     * @param string $local_key
+     * @param string $foreign_key
+     * @return RelationQuery
+     */
     protected function hasOne($model, $local_key, $foreign_key = null)
     {
         $id = $this->data[$local_key];
         $foreign_key = $foreign_key ?? $model::getKey();
         $foreign_table = $model::getTable();
 
-        $stmt = $this->_pdo->prepare("SELECT * FROM {$foreign_table} WHERE {$foreign_key} = :id LIMIT 1");
-        $stmt->execute(['id' => $id]);
-
-        return $model::fetch(0, $stmt->fetch(EssencePDO::FETCH_ASSOC));
+        return Query::create($foreign_table)
+                ->setModel($model)
+                ->where($foreign_key, $id)
+                ->limit(1);
     }
 
     protected function hasMany($model, $local_key, $foreign_key = null)
@@ -141,15 +167,9 @@ class Record implements ArrayAccess
         $foreign_key = $foreign_key ?? $model::getKey();
         $foreign_table = $model::getTable();
 
-        $stmt = $this->_pdo->prepare("SELECT * FROM {$foreign_table} WHERE {$foreign_key} = :id");
-        $stmt->execute(['id' => $id]);
-
-        $rows = $stmt->fetchAll(EssencePDO::FETCH_ASSOC);
-        $result = [];
-        foreach($rows as $row) {
-            $result[] = $model::fetch(0, $row);
-        }
-        return $result;
+        return Query::create($foreign_table)
+                ->setModel($model)
+                ->where($foreign_key, $id);
     }
 
     protected function belongsTo($model, $foreign_key = null)
@@ -158,10 +178,10 @@ class Record implements ArrayAccess
         $foreign_key = $foreign_key ?? $model::getKey();
         $id = $this->data[$this->_getKey()];
 
-        $stmt = $this->_pdo->prepare("SELECT * FROM {$table} WHERE {$foreign_key} = :id LIMIT 1");
-        $stmt->execute(['id' => $id]);
-
-        return $model::fetch(0, $stmt->fetch(EssencePDO::FETCH_ASSOC));
+        return Query::create($table)
+                ->setModel($model)
+                ->limit(1)
+                ->where($foreign_key, $id);
     }
 
     protected function belongsToMany($model, $link_table = null)
@@ -173,17 +193,13 @@ class Record implements ArrayAccess
         $model_key = $model::getKey();
 
         $local_id = $this->data[$this->_getKey()];
-        $link_table = $this->getLinkTable($model);
-
-        $stmt = $this->_pdo->prepare("SELECT * FROM {$model_table} WHERE {$model_key} IN (SELECT {$model_link_key} FROM {$link_table} WHERE {$local_link_key} = :id)");
-        $stmt->execute(['id' => $local_id]);
-
-        $rows = $stmt->fetchAll(EssencePDO::FETCH_ASSOC);
-        $result = [];
-        foreach($rows as $row) {
-            $result[] = $model::fetch(0, $row);
-        }
-        return $result;
+        $link_table = $link_table ?? $this->getLinkTable($model);
+        
+        return Query::create($model_table)
+                ->setModel($model)
+                ->columns('Tests.*')
+                ->innerJoin($link_table, $model_key, $model_link_key)
+                ->where($local_link_key, $local_id);
     }
 
     public static function getLinkKey($obj = null)

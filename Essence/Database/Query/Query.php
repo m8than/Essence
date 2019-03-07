@@ -58,11 +58,11 @@ class Query
     /**
      * Factory method
      *
-     * @return self
+     * @return static
      */
     public static function create($table = '')
     {
-        return get(self::class, [$table]);
+        return get(static::class, [$table]);
     }
     
     /**
